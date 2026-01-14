@@ -1,47 +1,60 @@
-name: Main Branch CI
+name: on-push-main
 
 on:
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/on-push-main.yaml'
+      - '.github/workflows/on-version-tagged.yaml'
+      - '.gitops/**'
+      - 'apis/**'
+      - 'examples/**'
+      - 'functions/**'
+      - 'tests/**'
+      - 'upbound.yaml'
+
+permissions:
+  packages: write
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: unbounded-tech/actions/crossplane-validate@main
-        with:
-          examples: |
-            examples/mongodboperators/minimal.yaml::
-            examples/mongodboperators/standard.yaml::
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/validate.yaml@v2.13.0
+    with:
+      examples: |
+        [
+          { "example": "examples/mongodboperators/minimal.yaml" },
+          { "example": "examples/mongodboperators/standard.yaml" }
+        ]
+      api_path: apis/mongodboperators
+      error_on_missing_schemas: true
 
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: unbounded-tech/actions/crossplane-test@main
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/test.yaml@v2.13.0
 
   e2e:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: unbounded-tech/actions/crossplane-e2e@main
-        with:
-          aws-use-oidc: true
-          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
-          aws-region: us-east-1
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/e2e.yaml@v2.13.0
 
   version-and-tag:
-    needs: [validate, test, e2e]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: unbounded-tech/actions/version-and-tag@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    name: Version and Tag
+    needs:
+      - validate
+      - test
+      - e2e
+    uses: unbounded-tech/workflow-vnext-tag/.github/workflows/workflow.yaml@v1.20.2
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    with:
+      useDeployKey: true
+      yqPatches: |
+        patches:
+          - filePath: .gitops/deploy/values.yaml
+            selector: .version
+            valuePrefix: "v"
+          - filePath: .gitops/deploy/Chart.yaml
+            selector: .version
+            valuePrefix: ""
