@@ -1,0 +1,46 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-validate@main
+        with:
+          examples: |
+            examples/mongodboperators/minimal.yaml::
+            examples/mongodboperators/standard.yaml::
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-test@main
+
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-e2e@main
+        with:
+          aws-use-oidc: true
+          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+          aws-region: us-east-1
+
+  publish:
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-publish@main
+        with:
+          tag: 0.0.0-pr${{ github.event.pull_request.number }}
+          ghcr-token: ${{ secrets.GHCR_TOKEN }}

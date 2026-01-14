@@ -1,0 +1,25 @@
+# code: language=yaml
+#
+# Compute status values from observed state
+#
+
+{{- $m := $state.mongodboperator }}
+{{- $obs := $state.observed }}
+
+# ==============================================================================
+# Compute status output
+# ==============================================================================
+
+{{- $helmReady := $obs.helmRelease.ready | default false }}
+{{- $ready := $helmReady }}
+
+{{- $state = set $state "status" (dict
+  "ready" $ready
+  "helmRelease" (dict
+    "name" $m.releaseName
+    "namespace" $m.namespace
+    "ready" $helmReady
+    "state" ($obs.helmRelease.state | default "")
+    "revision" ($obs.helmRelease.revision | default "")
+  )
+) }}

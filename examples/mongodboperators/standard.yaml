@@ -1,0 +1,26 @@
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: MongoDBOperator
+metadata:
+  name: mongodb-operator
+  namespace: example-env
+spec:
+  clusterName: my-cluster
+  namespace: mongodb
+  labels:
+    team: platform
+    environment: production
+  providerConfigRef:
+    name: my-cluster
+    kind: ProviderConfig
+  helm:
+    mongodbOperator:
+      values:
+        operator:
+          watchNamespace: "*"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

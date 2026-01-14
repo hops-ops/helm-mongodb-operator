@@ -1,0 +1,97 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: mongodboperators.helm.hops.ops.com.ai
+spec:
+  group: helm.hops.ops.com.ai
+  names:
+    kind: MongoDBOperator
+    plural: mongodboperators
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                clusterName:
+                  type: string
+                  description: Name of the cluster for provider config resolution.
+                namespace:
+                  type: string
+                  description: Namespace to deploy the MongoDB Operator into.
+                  default: mongodb
+                labels:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Labels to apply to all resources.
+                  x-kubernetes-preserve-unknown-fields: true
+                providerConfigRef:
+                  type: object
+                  description: Reference to the Helm ProviderConfig.
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the Helm ProviderConfig.
+                    kind:
+                      type: string
+                      description: Kind of the provider config reference.
+                      default: ProviderConfig
+                  required:
+                    - name
+                managementPolicies:
+                  type: array
+                  items:
+                    type: string
+                  default:
+                    - "*"
+                  description: Management policies for the composite resource.
+                helm:
+                  type: object
+                  description: Helm chart configuration.
+                  properties:
+                    mongodbOperator:
+                      type: object
+                      description: MongoDB Operator Helm release settings.
+                      properties:
+                        values:
+                          type: object
+                          description: Helm values that merge with defaults.
+                          x-kubernetes-preserve-unknown-fields: true
+                        overrideAllValues:
+                          type: object
+                          description: Helm values that replace all defaults.
+                          x-kubernetes-preserve-unknown-fields: true
+              required:
+                - clusterName
+            status:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+                  description: Whether all resources are ready.
+                helmRelease:
+                  type: object
+                  description: Status of the Helm release.
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the Helm release.
+                    namespace:
+                      type: string
+                      description: Namespace of the Helm release.
+                    ready:
+                      type: boolean
+                      description: Whether the Helm release is ready.
+                    revision:
+                      type: string
+                      description: Current revision of the Helm release.
+                    state:
+                      type: string
+                      description: Current state of the Helm release.

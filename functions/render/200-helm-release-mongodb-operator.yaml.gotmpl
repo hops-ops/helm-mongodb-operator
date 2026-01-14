@@ -1,0 +1,39 @@
+# code: language=yaml
+#
+# MongoDB Community Operator Helm Release
+#
+
+{{- $m := $state.mongodboperator }}
+---
+apiVersion: helm.m.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: {{ $m.releaseName }}
+  annotations:
+    {{ setResourceNameAnnotation "helm-release-mongodb-operator" }}
+  labels: {{ $m.labels | toJson }}
+spec:
+  managementPolicies: {{ $m.managementPolicies | toJson }}
+  forProvider:
+    chart:
+      name: community-operator
+      repository: https://mongodb.github.io/helm-charts
+      version: 0.13.0
+    namespace: {{ $m.namespace }}
+    {{- if $m.overrideAllValues }}
+    values:
+      {{- toYaml $m.overrideAllValues | nindent 6 }}
+    {{- else }}
+    values:
+      fullnameOverride: mongodb-operator
+      nameOverride: mongodb-operator
+      operator:
+        watchNamespace: "*"
+      {{- if $m.values }}
+      {{- toYaml $m.values | nindent 6 }}
+      {{- end }}
+    {{- end }}
+  rollbackLimit: 3
+  providerConfigRef:
+    name: {{ $m.providerConfigRef.name }}
+    kind: {{ $m.providerConfigRef.kind }}

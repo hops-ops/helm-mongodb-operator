@@ -1,0 +1,47 @@
+name: Main Branch CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-validate@main
+        with:
+          examples: |
+            examples/mongodboperators/minimal.yaml::
+            examples/mongodboperators/standard.yaml::
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-test@main
+
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: unbounded-tech/actions/crossplane-e2e@main
+        with:
+          aws-use-oidc: true
+          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+          aws-region: us-east-1
+
+  version-and-tag:
+    needs: [validate, test, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: unbounded-tech/actions/version-and-tag@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
